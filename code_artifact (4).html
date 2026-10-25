@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="ko" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스마트 메모장 - Smart Notes</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        },
+                        note: {
+                            yellow: '#fef08a',
+                            green: '#bbf7d0',
+                            blue: '#bfdbfe',
+                            pink: '#fbcfe8',
+                            purple: '#e9d5ff',
+                            orange: '#fed7aa',
+                            gray: '#f3f4f6',
+                            darkyellow: '#854d0e',
+                            darkgreen: '#14532d',
+                            darkblue: '#1e3a8a',
+                            darkpink: '#831843',
+                            darkpurple: '#581c87',
+                            darkorange: '#7c2d12',
+                            darkgray: '#374151'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Noto Sans KR) -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-full flex flex-col transition-colors duration-200">
+
+    <!-- Header Section -->
+    <header class="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+            <!-- Logo & Title -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 to-orange-500 flex items-center justify-center text-white shadow-md shadow-orange-500/20">
+                    <i class="fa-solid font-bold fa-note-sticky text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-800 dark:text-white leading-tight">스마트 메모장</h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">나만의 아이디어와 일상을 기록하세요</p>
+                </div>
+            </div>
+
+            <!-- Header Controls -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- Search Bar -->
+                <div class="relative flex-1 sm:w-64 max-w-xs">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input type="text" id="searchInput" placeholder="메모 검색 (제목, 내용)..." 
+                           class="w-full pl-9 pr-8 py-2 bg-slate-100 dark:bg-slate-800 text-sm rounded-xl border border-transparent focus:border-amber-500 dark:focus:border-amber-500 focus:bg-white dark:focus:bg-slate-900 outline-none transition-all">
+                    <button id="clearSearchBtn" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                        <i class="fa-solid fa-circle-xmark text-sm"></i>
+                    </button>
+                </div>
+
+                <!-- Dark Mode Toggle Button -->
+                <button id="themeToggleBtn" title="테마 변경" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors">
+                    <i class="fa-solid fa-moon dark:hidden"></i>
+                    <i class="fa-solid fa-sun hidden dark:block text-amber-400"></i>
+                </button>
+
+                <!-- More Menu Button (Import/Export) -->
+                <div class="relative">
+                    <button id="menuDropdownBtn" title="더보기 옵션" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors">
+                        <i class="fa-solid fa-ellipsis-vertical"></i>
+                    </button>
+                    <!-- Dropdown Menu -->
+                    <div id="menuDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 py-2 z-40 text-sm">
+                        <button id="exportJsonBtn" class="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-2.5 text-slate-700 dark:text-slate-200">
+                            <i class="fa-solid fa-file-export text-emerald-500"></i> 메모 내보내기 (JSON)
+                        </button>
+                        <button id="importJsonBtn" class="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-2.5 text-slate-700 dark:text-slate-200">
+                            <i class="fa-solid fa-file-import text-blue-500"></i> 메모 가져오기 (JSON)
+                        </button>
+                        <input type="file" id="jsonFileInput" accept=".json" class="hidden">
+                    </div>
+                </div>
+
+                <!-- Create Note Button -->
+                <button id="openCreateModalBtn" class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-medium px-4 py-2 rounded-xl shadow-md shadow-orange-500/20 flex items-center gap-2 text-sm transition-all transform active:scale-95 shrink-0">
+                    <i class="fa-solid fa-plus"></i>
+                    <span class="hidden sm:inline">새 메모</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Layout -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full flex flex-col md:flex-row gap-6">
+        
+        <!-- Sidebar Filters -->
+        <aside class="w-full md:w-56 shrink-0 flex flex-col gap-6">
+            <!-- Categories / Tags Filter -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-800">
+                <h2 class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 px-2">카테고리</h2>
+                <nav class="space-y-1" id="categoryNav">
+                    <button data-category="all" class="category-btn active w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition-colors bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+                        <span class="flex items-center gap-2.5"><i class="fa-solid fa-layer-group"></i> 전체 보기</span>
+                        <span id="count-all" class="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">0</span>
+                    </button>
+                    <button data-category="fav" class="category-btn w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <span class="flex items-center gap-2.5"><i class="fa-solid fa-star text-amber-400"></i> 즐겨찾기</span>
+                        <span id="count-fav" class="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">0</span>
+                    </button>
+                    <hr class="my-2 border-slate-100 dark:border-slate-700">
+                    <button data-category="개인" class="category-btn w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <span class="flex items-center gap-2.5"><span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> 개인</span>
+                        <span id="count-개인" class="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">0</span>
+                    </button>
+                    <button data-category="업무" class="category-btn w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <span class="flex items-center gap-2.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 업무</span>
+                        <span id="count-업무" class="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">0</span>
+                    </button>
+                    <button data-category="아이디어" class="category-btn w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <span class="flex items-center gap-2.5"><span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span> 아이디어</span>
+                        <span id="count-아이디어" class="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">0</span>
+                    </button>
+                    <button data-category="중요" class="category-btn w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <span class="flex items-center gap-2.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> 중요</span>
+                        <span id="count-중요" class="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">0</span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Memory Stats & Quick Info -->
+            <div class="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-4 text-white shadow-lg shadow-orange-500/10 hidden md:block">
+                <div class="flex items-center gap-2 mb-2 text-amber-100 text-xs font-semibold uppercase tracking-wider">
+                    <i class="fa-solid fa-lightbulb"></i> 사용 팁
+                </div>
+                <p class="text-xs leading-relaxed opacity-95">
+                    메모 카드의 고정 아이콘을 누르면 최상단에 고정됩니다. 드래그 없이도 신속하게 수정을 시작할 수 있습니다!
+                </p>
+            </div>
+        </aside>
+
+        <!-- Main Note Grid Area -->
+        <main class="flex-1 flex flex-col">
+            <!-- Filter Bar / Status Header -->
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <h2 id="currentCategoryTitle" class="text-lg font-bold text-slate-800 dark:text-white">전체 메모</h2>
+                    <span id="noteCountBadge" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">0개</span>
+                </div>
+                <!-- Sort Options -->
+                <div class="flex items-center gap-2 text-xs">
+                    <span class="text-slate-400">정렬:</span>
+                    <select id="sortSelect" class="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg px-2.5 py-1.5 border border-slate-200 dark:border-slate-700 outline-none cursor-pointer">
+                        <option value="newest">최신순</option>
+                        <option value="oldest">오래된순</option>
+                        <option value="title">제목순</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Notes Cards Grid -->
+            <div id="notesContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Notes will be injected here via JavaScript -->
+            </div>
+
+            <!-- Empty State Display -->
+            <div id="emptyState" class="hidden flex-1 flex flex-col items-center justify-center p-12 text-center my-12">
+                <div class="w-20 h-20 rounded-full bg-amber-50 dark:bg-slate-800 text-amber-500 flex items-center justify-center text-3xl mb-4 shadow-inner">
+                    <i class="fa-solid fa-folder-open"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-1">표시할 메모가 없습니다</h3>
+                <p class="text-sm text-slate-400 dark:text-slate-500 mb-6 max-w-xs">새로운 메모를 작성하거나 검색 조건을 변경해보세요.</p>
+                <button id="emptyCreateBtn" class="bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium px-4 py-2 rounded-xl transition-all shadow-md shadow-amber-500/20">
+                    <i class="fa-solid fa-plus mr-1.5"></i> 메모 작성하기
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-3 rounded-xl shadow-2xl z-50 flex items-center gap-3 text-sm font-medium">
+        <i id="toastIcon" class="fa-solid fa-check-circle text-emerald-400 dark:text-emerald-600"></i>
+        <span id="toastMessage">작업이 완료되었습니다.</span>
+    </div>
+
+    <!-- Create/Edit Note Modal -->
+    <div id="noteModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-xl w-full p-6 border border-slate-100 dark:border-slate-700 transform scale-95 transition-transform duration-200 flex flex-col max-h-[90vh]" id="modalCard">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-700 mb-4">
+                <h3 id="modalTitle" class="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                    <i class="fa-solid fa-pen-to-square text-amber-500"></i> 새 메모 작성
+                </h3>
+                <button id="closeModalBtn" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg transition-colors">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Form Body -->
+            <form id="noteForm" class="flex-1 flex flex-col gap-4 overflow-y-auto pr-1">
+                <input type="hidden" id="noteId">
+                
+                <!-- Title & Category Row -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">제목</label>
+                        <input type="text" id="noteTitleInput" placeholder="제목을 입력하세요" required 
+                               class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:border-amber-500 dark:focus:border-amber-500 transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">카테고리</label>
+                        <select id="noteCategoryInput" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:border-amber-500 dark:focus:border-amber-500 transition-all cursor-pointer">
+                            <option value="개인">개인</option>
+                            <option value="업무">업무</option>
+                            <option value="아이디어">아이디어</option>
+                            <option value="중요">중요</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Color Picker -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">메모 색상</label>
+                    <div class="flex items-center gap-3 py-1" id="colorPickerContainer">
+                        <!-- Radio buttons for colors dynamically generated or fixed -->
+                        <label class="cursor-pointer">
+                            <input type="radio" name="noteColor" value="yellow" checked class="peer hidden">
+                            <span class="w-7 h-7 rounded-full bg-yellow-200 peer-checked:ring-2 peer-checked:ring-amber-500 peer-checked:ring-offset-2 dark:peer-checked:ring-offset-slate-800 block transition-all shadow-sm"></span>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="noteColor" value="green" class="peer hidden">
+                            <span class="w-7 h-7 rounded-full bg-emerald-200 peer-checked:ring-2 peer-checked:ring-amber-500 peer-checked:ring-offset-2 dark:peer-checked:ring-offset-slate-800 block transition-all shadow-sm"></span>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="noteColor" value="blue" class="peer hidden">
+                            <span class="w-7 h-7 rounded-full bg-blue-200 peer-checked:ring-2 peer-checked:ring-amber-500 peer-checked:ring-offset-2 dark:peer-checked:ring-offset-slate-800 block transition-all shadow-sm"></span>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="noteColor" value="pink" class="peer hidden">
+                            <span class="w-7 h-7 rounded-full bg-pink-200 peer-checked:ring-2 peer-checked:ring-amber-500 peer-checked:ring-offset-2 dark:peer-checked:ring-offset-slate-800 block transition-all shadow-sm"></span>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="noteColor" value="purple" class="peer hidden">
+                            <span class="w-7 h-7 rounded-full bg-purple-200 peer-checked:ring-2 peer-checked:ring-amber-500 peer-checked:ring-offset-2 dark:peer-checked:ring-offset-slate-800 block transition-all shadow-sm"></span>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="noteColor" value="orange" class="peer hidden">
+                            <span class="w-7 h-7 rounded-full bg-orange-200 peer-checked:ring-2 peer-checked:ring-amber-500 peer-checked:ring-offset-2 dark:peer-checked:ring-offset-slate-800 block transition-all shadow-sm"></span>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="noteColor" value="gray" class="peer hidden">
+                            <span class="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-600 peer-checked:ring-2 peer-checked:ring-amber-500 peer-checked:ring-offset-2 dark:peer-checked:ring-offset-slate-800 block transition-all shadow-sm"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Text Formatting Helper Bar -->
+                <div class="flex items-center gap-1 border-b border-slate-100 dark:border-slate-700 pb-2 pt-1 text-slate-500">
+                    <span class="text-xs font-semibold mr-2 text-slate-400">서식 도우미:</span>
+                    <button type="button" data-format="bold" title="굵게" class="format-btn p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-xs">
+                        <i class="fa-solid fa-bold"></i>
+                    </button>
+                    <button type="button" data-format="italic" title="기울임" class="format-btn p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-xs">
+                        <i class="fa-solid fa-italic"></i>
+                    </button>
+                    <button type="button" data-format="list" title="글머리 기호" class="format-btn p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-xs">
+                        <i class="fa-solid fa-list-ul"></i>
+                    </button>
+                    <button type="button" data-format="check" title="체크리스트" class="format-btn p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-xs">
+                        <i class="fa-solid fa-square-check"></i>
+                    </button>
+                </div>
+
+                <!-- Content Textarea -->
+                <div class="flex-1 min-h-[160px] flex flex-col">
+                    <textarea id="noteContentInput" placeholder="내용을 작성하세요..." required 
+                              class="w-full h-full p-3.5 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600 text-sm focus:outline-none focus:border-amber-500 dark:focus:border-amber-500 transition-all resize-none leading-relaxed flex-1"></textarea>
+                </div>
+
+                <!-- Modal Actions -->
+                <div class="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-700 mt-2">
+                    <label class="inline-flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-600 dark:text-slate-300">
+                        <input type="checkbox" id="notePinnedInput" class="w-4 h-4 rounded text-amber-500 focus:ring-amber-500 border-slate-300 dark:border-slate-600">
+                        <span>상단 고정 (즐겨찾기)</span>
+                    </label>
+                    <div class="flex items-center gap-2">
+                        <button type="button" id="cancelModalBtn" class="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm transition-colors">취소</button>
+                        <button type="submit" id="saveNoteBtn" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium shadow-md shadow-amber-500/20 transition-all">저장하기</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Note Detail View Modal -->
+    <div id="detailModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-xl w-full p-6 border border-slate-100 dark:border-slate-700 transform scale-95 transition-transform duration-200 flex flex-col max-h-[85vh]" id="detailCard">
+            <!-- Header -->
+            <div class="flex items-start justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
+                <div>
+                    <div class="flex items-center gap-2 mb-1">
+                        <span id="detailBadge" class="text-xs px-2.5 py-0.5 rounded-full font-semibold"></span>
+                        <span id="detailDate" class="text-xs text-slate-400"></span>
+                    </div>
+                    <h3 id="detailTitle" class="text-xl font-bold text-slate-800 dark:text-white leading-snug"></h3>
+                </div>
+                <button id="closeDetailBtn" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Content Area -->
+            <div id="detailContent" class="py-4 text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap leading-relaxed overflow-y-auto flex-1 my-2"></div>
+
+            <!-- Footer Toolbar -->
+            <div class="pt-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                <button id="detailCopyBtn" class="text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-amber-500 flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                    <i class="fa-regular fa-copy"></i> 복사
+                </button>
+                <div class="flex items-center gap-2">
+                    <button id="detailDeleteBtn" class="text-xs font-medium text-rose-500 hover:text-rose-600 px-3 py-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors">
+                        <i class="fa-solid fa-trash-can mr-1"></i> 삭제
+                    </button>
+                    <button id="detailEditBtn" class="text-xs font-medium bg-amber-500 text-white px-4 py-1.5 rounded-xl hover:bg-amber-600 transition-colors shadow-sm">
+                        <i class="fa-solid fa-pen mr-1"></i> 수정
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        // --- State Management ---
+        let notes = [];
+        let currentFilterCategory = 'all';
+        let currentSearchQuery = '';
+        let currentSort = 'newest';
+        let activeNoteId = null;
+
+        // Color Styles Mapping
+        const colorClasses = {
+            yellow: {
+                bg: 'bg-yellow-50 dark:bg-yellow-950/30',
+                border: 'border-yellow-200 dark:border-yellow-800/50',
+                badge: 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300'
+            },
+            green: {
+                bg: 'bg-emerald-50 dark:bg-emerald-950/30',
+                border: 'border-emerald-200 dark:border-emerald-800/50',
+                badge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300'
+            },
+            blue: {
+                bg: 'bg-blue-50 dark:bg-blue-950/30',
+                border: 'border-blue-200 dark:border-blue-800/50',
+                badge: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300'
+            },
+            pink: {
+                bg: 'bg-pink-50 dark:bg-pink-950/30',
+                border: 'border-pink-200 dark:border-pink-800/50',
+                badge: 'bg-pink-100 text-pink-800 dark:bg-pink-900/50 dark:text-pink-300'
+            },
+            purple: {
+                bg: 'bg-purple-50 dark:bg-purple-950/30',
+                border: 'border-purple-200 dark:border-purple-800/50',
+                badge: 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300'
+            },
+            orange: {
+                bg: 'bg-orange-50 dark:bg-orange-950/30',
+                border: 'border-orange-200 dark:border-orange-800/50',
+                badge: 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300'
+            },
+            gray: {
+                bg: 'bg-white dark:bg-slate-800',
+                border: 'border-slate-200 dark:border-slate-700',
+                badge: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
+            }
+        };
+
+        // --- DOM Elements ---
+        const notesContainer = document.getElementById('notesContainer');
+        const emptyState = document.getElementById('emptyState');
+        const searchInput = document.getElementById('searchInput');
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const categoryNav = document.getElementById('categoryNav');
+        const currentCategoryTitle = document.getElementById('currentCategoryTitle');
+        const noteCountBadge = document.getElementById('noteCountBadge');
+        const sortSelect = document.getElementById('sortSelect');
+
+        // Modal Elements
+        const noteModal = document.getElementById('noteModal');
+        const modalCard = document.getElementById('modalCard');
+        const modalTitle = document.getElementById('modalTitle');
+        const noteForm = document.getElementById('noteForm');
+        const noteIdInput = document.getElementById('noteId');
+        const noteTitleInput = document.getElementById('noteTitleInput');
+        const noteCategoryInput = document.getElementById('noteCategoryInput');
+        const noteContentInput = document.getElementById('noteContentInput');
+        const notePinnedInput = document.getElementById('notePinnedInput');
+        const openCreateModalBtn = document.getElementById('openCreateModalBtn');
+        const emptyCreateBtn = document.getElementById('emptyCreateBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const cancelModalBtn = document.getElementById('cancelModalBtn');
+
+        // Detail Modal Elements
+        const detailModal = document.getElementById('detailModal');
+        const detailCard = document.getElementById('detailCard');
+        const detailTitle = document.getElementById('detailTitle');
+        const detailBadge = document.getElementById('detailBadge');
+        const detailDate = document.getElementById('detailDate');
+        const detailContent = document.getElementById('detailContent');
+        const closeDetailBtn = document.getElementById('closeDetailBtn');
+        const detailCopyBtn = document.getElementById('detailCopyBtn');
+        const detailDeleteBtn = document.getElementById('detailDeleteBtn');
+        const detailEditBtn = document.getElementById('detailEditBtn');
+
+        // Menu Dropdown
+        const menuDropdownBtn = document.getElementById('menuDropdownBtn');
+        const menuDropdown = document.getElementById('menuDropdown');
+        const exportJsonBtn = document.getElementById('exportJsonBtn');
+        const importJsonBtn = document.getElementById('importJsonBtn');
+        const jsonFileInput = document.getElementById('jsonFileInput');
+
+        // Toast
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toastMessage');
+
+        // --- Initialization ---
+        window.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            loadNotes();
+            setupEventListeners();
+            renderNotes();
+        });
+
+        // Theme Handling
+        function initTheme() {
+            if (localStorage.getItem('theme') === 'dark' || 
+                (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+
+        themeToggleBtn.addEventListener('click', () => {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        });
+
+        // --- Storage Logic ---
+        function loadNotes() {
+            const saved = localStorage.getItem('smart_notes_data');
+            if (saved) {
+                try {
+                    notes = JSON.parse(saved);
+                } catch (e) {
+                    console.error('Failed to parse notes:', e);
+                    notes = getSampleNotes();
+                }
+            } else {
+                notes = getSampleNotes();
+                saveNotes();
+            }
+        }
+
+        function saveNotes() {
+            localStorage.setItem('smart_notes_data', JSON.stringify(notes));
+            updateCategoryCounts();
+        }
+
+        function getSampleNotes() {
+            return [
+                {
+                    id: '1',
+                    title: '스마트 메모장에 오신 것을 환영합니다! 🎉',
+                    content: '이 앱은 깔끔하고 직관적인 메모 공간입니다.\n\n✨ 주요 기능:\n- 카테고리별 정리를 통한 효율적 메모 관리\n- 상단 고정(즐겨찾기) 기능\n- 다양한 컬러 코드 지원\n- 다크 모드 & 라이트 모드\n- JSON 데이터 내보내기/가져오기',
+                    category: '개인',
+                    color: 'yellow',
+                    pinned: true,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                },
+                {
+                    id: '2',
+                    title: '주간 아이디어 회의 안건',
+                    content: '1. 신규 기능 개선 방향 논의\n2. 사용자 피드백 분석 결과 공유\n3. 다음 분기 로드맵 검토',
+                    category: '업무',
+                    color: 'blue',
+                    pinned: false,
+                    createdAt: new Date(Date.now() - 86400000).toISOString(),
+                    updatedAt: new Date(Date.now() - 86400000).toISOString()
+                }
+            ];
+        }
+
+        // --- Event Listeners Setup ---
+        function setupEventListeners() {
+            // Search Input
+            searchInput.addEventListener('input', (e) => {
+                currentSearchQuery = e.target.value.trim().toLowerCase();
+                clearSearchBtn.classList.toggle('hidden', !currentSearchQuery);
+                renderNotes();
+            });
+
+            clearSearchBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                currentSearchQuery = '';
+                clearSearchBtn.classList.add('hidden');
+                renderNotes();
+            });
+
+            // Category Navigation
+            categoryNav.addEventListener('click', (e) => {
+                const button = e.target.closest('.category-btn');
+                if (!button) return;
+
+                document.querySelectorAll('.category-btn').forEach(btn => {
+                    btn.classList.remove('active', 'bg-amber-50', 'text-amber-600', 'dark:bg-amber-900/30', 'dark:text-amber-400');
+                    btn.classList.add('text-slate-600', 'dark:text-slate-400');
+                });
+
+                button.classList.add('active', 'bg-amber-50', 'text-amber-600', 'dark:bg-amber-900/30', 'dark:text-amber-400');
+                button.classList.remove('text-slate-600', 'dark:text-slate-400');
+
+                currentFilterCategory = button.dataset.category;
+                
+                // Set Header Title
+                if (currentFilterCategory === 'all') currentCategoryTitle.textContent = '전체 메모';
+                else if (currentFilterCategory === 'fav') currentCategoryTitle.textContent = '즐겨찾기 메모';
+                else currentCategoryTitle.textContent = `${currentFilterCategory} 메모`;
+
+                renderNotes();
+            });
+
+            // Sort Select
+            sortSelect.addEventListener('change', (e) => {
+                currentSort = e.target.value;
+                renderNotes();
+            });
+
+            // Modal Triggers
+            openCreateModalBtn.addEventListener('click', () => openFormModal());
+            emptyCreateBtn.addEventListener('click', () => openFormModal());
+            closeModalBtn.addEventListener('click', closeFormModal);
+            cancelModalBtn.addEventListener('click', closeFormModal);
+
+            // Form Submit
+            noteForm.addEventListener('submit', handleFormSubmit);
+
+            // Detail Modal Controls
+            closeDetailBtn.addEventListener('click', closeDetailModal);
+            detailCopyBtn.addEventListener('click', copyDetailContent);
+            detailDeleteBtn.addEventListener('click', () => {
+                if (activeNoteId) {
+                    deleteNote(activeNoteId);
+                    closeDetailModal();
+                }
+            });
+            detailEditBtn.addEventListener('click', () => {
+                const note = notes.find(n => n.id === activeNoteId);
+                closeDetailModal();
+                if (note) openFormModal(note);
+            });
+
+            // Formatting Helper Buttons
+            document.querySelectorAll('.format-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const format = btn.dataset.format;
+                    insertFormatting(format);
+                });
+            });
+
+            // Dropdown Toggle
+            menuDropdownBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                menuDropdown.classList.toggle('hidden');
+            });
+
+            document.addEventListener('click', () => {
+                menuDropdown.classList.add('hidden');
+            });
+
+            // JSON Export/Import
+            exportJsonBtn.addEventListener('click', exportNotesToJSON);
+            importJsonBtn.addEventListener('click', () => jsonFileInput.click());
+            jsonFileInput.addEventListener('change', importNotesFromJSON);
+        }
+
+        // --- Formatting Helper Insertion ---
+        function insertFormatting(type) {
+            const start = noteContentInput.selectionStart;
+            const end = noteContentInput.selectionEnd;
+            const text = noteContentInput.value;
+            let insertText = '';
+
+            switch(type) {
+                case 'bold':
+                    insertText = `**${text.substring(start, end) || '텍스트'}**`;
+                    break;
+                case 'italic':
+                    insertText = `*${text.substring(start, end) || '텍스트'}*`;
+                    break;
+                case 'list':
+                    insertText = `\n- ${text.substring(start, end) || '항목'}`;
+                    break;
+                case 'check':
+                    insertText = `\n[ ] ${text.substring(start, end) || '할 일'}`;
+                    break;
+            }
+
+            noteContentInput.value = text.substring(0, start) + insertText + text.substring(end);
+            noteContentInput.focus();
+        }
+
+        // --- Render Notes Grid ---
+        function renderNotes() {
+            // Filter
+            let filtered = notes.filter(note => {
+                const matchesCategory = currentFilterCategory === 'all' || 
+                                       (currentFilterCategory === 'fav' && note.pinned) ||
+                                       note.category === currentFilterCategory;
+                const matchesSearch = !currentSearchQuery || 
+                                      note.title.toLowerCase().includes(currentSearchQuery) || 
+                                      note.content.toLowerCase().includes(currentSearchQuery);
+                return matchesCategory && matchesSearch;
+            });
+
+            // Sort
+            filtered.sort((a, b) => {
+                if (a.pinned !== b.pinned) return a.pinned ? -1 : 1; // Pinned always first
+                if (currentSort === 'newest') return new Date(b.updatedAt) - new Date(a.updatedAt);
+                if (currentSort === 'oldest') return new Date(a.updatedAt) - new Date(b.updatedAt);
+                if (currentSort === 'title') return a.title.localeCompare(b.title);
+                return 0;
+            });
+
+            // Update Badge Count
+            noteCountBadge.textContent = `${filtered.length}개`;
+            updateCategoryCounts();
+
+            // Render
+            notesContainer.innerHTML = '';
+
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+                notesContainer.classList.add('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            notesContainer.classList.remove('hidden');
+
+            filtered.forEach(note => {
+                const colorConfig = colorClasses[note.color] || colorClasses.gray;
+                const card = document.createElement('div');
+                card.className = `${colorConfig.bg} ${colorConfig.border} border rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between group relative cursor-pointer`;
+                
+                // Format Date
+                const dateStr = formatDate(note.updatedAt);
+
+                card.innerHTML = `
+                    <div>
+                        <!-- Card Top Info -->
+                        <div class="flex items-center justify-between gap-2 mb-3">
+                            <span class="text-xs px-2.5 py-0.5 rounded-full font-semibold ${colorConfig.badge}">
+                                ${escapeHtml(note.category)}
+                            </span>
+                            <div class="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                                <button data-action="pin" class="p-1 text-slate-400 hover:text-amber-500 transition-colors" title="${note.pinned ? '고정 해제' : '상단 고정'}">
+                                    <i class="fa-solid fa-thumbtack ${note.pinned ? 'text-amber-500 rotate-45' : ''}"></i>
+                                </button>
+                                <button data-action="edit" class="p-1 text-slate-400 hover:text-blue-500 transition-colors" title="수정">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                <button data-action="delete" class="p-1 text-slate-400 hover:text-rose-500 transition-colors" title="삭제">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Card Title -->
+                        <h3 class="font-bold text-slate-800 dark:text-white mb-2 line-clamp-1 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                            ${escapeHtml(note.title)}
+                        </h3>
+
+                        <!-- Card Snippet -->
+                        <p class="text-xs text-slate-600 dark:text-slate-300 line-clamp-4 leading-relaxed mb-4 whitespace-pre-line">
+                            ${escapeHtml(note.content)}
+                        </p>
+                    </div>
+
+                    <!-- Card Footer Date -->
+                    <div class="pt-2 border-t border-slate-900/5 dark:border-white/5 flex items-center justify-between text-[11px] text-slate-400">
+                        <span>${dateStr}</span>
+                        ${note.pinned ? '<span class="text-amber-500 font-semibold"><i class="fa-solid fa-star text-[10px] mr-1"></i>고정됨</span>' : ''}
+                    </div>
+                `;
+
+                // Handle Card Click vs Action Button Clicks
+                card.addEventListener('click', (e) => {
+                    const actionBtn = e.target.closest('button[data-action]');
+                    if (actionBtn) {
+                        e.stopPropagation();
+                        const action = actionBtn.dataset.action;
+                        if (action === 'pin') togglePinNote(note.id);
+                        if (action === 'edit') openFormModal(note);
+                        if (action === 'delete') deleteNote(note.id);
+                    } else {
+                        openDetailModal(note);
+                    }
+                });
+
+                notesContainer.appendChild(card);
+            });
+        }
+
+        // Update Category Count Badges
+        function updateCategoryCounts() {
+            document.getElementById('count-all').textContent = notes.length;
+            document.getElementById('count-fav').textContent = notes.filter(n => n.pinned).length;
+            document.getElementById('count-개인').textContent = notes.filter(n => n.category === '개인').length;
+            document.getElementById('count-업무').textContent = notes.filter(n => n.category === '업무').length;
+            document.getElementById('count-아이디어').textContent = notes.filter(n => n.category === '아이디어').length;
+            document.getElementById('count-중요').textContent = notes.filter(n => n.category === '중요').length;
+        }
+
+        // --- Form Modal Handling ---
+        function openFormModal(note = null) {
+            noteForm.reset();
+            
+            if (note) {
+                modalTitle.innerHTML = '<i class="fa-solid fa-pen-to-square text-amber-500"></i> 메모 수정';
+                noteIdInput.value = note.id;
+                noteTitleInput.value = note.title;
+                noteCategoryInput.value = note.category;
+                noteContentInput.value = note.content;
+                notePinnedInput.checked = note.pinned;
+                
+                // Select Color Radio
+                const colorRadio = noteForm.querySelector(`input[name="noteColor"][value="${note.color}"]`);
+                if (colorRadio) colorRadio.checked = true;
+            } else {
+                modalTitle.innerHTML = '<i class="fa-solid fa-plus text-amber-500"></i> 새 메모 작성';
+                noteIdInput.value = '';
+                const defaultYellow = noteForm.querySelector('input[name="noteColor"][value="yellow"]');
+                if (defaultYellow) defaultYellow.checked = true;
+            }
+
+            noteModal.classList.remove('hidden');
+            setTimeout(() => {
+                noteModal.classList.remove('opacity-0');
+                modalCard.classList.remove('scale-95');
+                modalCard.classList.add('scale-100');
+                noteTitleInput.focus();
+            }, 10);
+        }
+
+        function closeFormModal() {
+            noteModal.classList.add('opacity-0');
+            modalCard.classList.remove('scale-100');
+            modalCard.classList.add('scale-95');
+            setTimeout(() => {
+                noteModal.classList.add('hidden');
+            }, 200);
+        }
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+
+            const id = noteIdInput.value;
+            const title = noteTitleInput.value.trim();
+            const category = noteCategoryInput.value;
+            const content = noteContentInput.value.trim();
+            const pinned = notePinnedInput.checked;
+            const color = noteForm.querySelector('input[name="noteColor"]:checked').value;
+
+            if (!title || !content) return;
+
+            if (id) {
+                // Update Existing
+                const index = notes.findIndex(n => n.id === id);
+                if (index !== -1) {
+                    notes[index] = {
+                        ...notes[index],
+                        title,
+                        category,
+                        content,
+                        color,
+                        pinned,
+                        updatedAt: new Date().toISOString()
+                    };
+                    showToast('메모가 수정되었습니다.');
+                }
+            } else {
+                // Create New
+                const newNote = {
+                    id: Date.now().toString(),
+                    title,
+                    category,
+                    content,
+                    color,
+                    pinned,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                notes.unshift(newNote);
+                showToast('새 메모가 저장되었습니다.');
+            }
+
+            saveNotes();
+            renderNotes();
+            closeFormModal();
+        }
+
+        // --- Detail Modal Handling ---
+        function openDetailModal(note) {
+            activeNoteId = note.id;
+            detailTitle.textContent = note.title;
+            detailContent.textContent = note.content;
+            detailDate.textContent = `수정일: ${formatDate(note.updatedAt)}`;
+
+            // Badge Color Style
+            const colorConfig = colorClasses[note.color] || colorClasses.gray;
+            detailBadge.className = `text-xs px-2.5 py-0.5 rounded-full font-semibold ${colorConfig.badge}`;
+            detailBadge.textContent = note.category;
+
+            detailModal.classList.remove('hidden');
+            setTimeout(() => {
+                detailModal.classList.remove('opacity-0');
+                detailCard.classList.remove('scale-95');
+                detailCard.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeDetailModal() {
+            detailModal.classList.add('opacity-0');
+            detailCard.classList.remove('scale-100');
+            detailCard.classList.add('scale-95');
+            setTimeout(() => {
+                detailModal.classList.add('hidden');
+                activeNoteId = null;
+            }, 200);
+        }
+
+        function copyDetailContent() {
+            if (!activeNoteId) return;
+            const note = notes.find(n => n.id === activeNoteId);
+            if (!note) return;
+
+            const textToCopy = `${note.title}\n\n${note.content}`;
+            
+            // Clipboard Copy Helper
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = textToCopy;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            try {
+                document.execCommand('copy');
+                showToast('클립보드에 복사되었습니다.');
+            } catch (err) {
+                showToast('복사에 실패했습니다.');
+            }
+            document.body.removeChild(tempTextArea);
+        }
+
+        // --- Actions ---
+        function togglePinNote(id) {
+            const note = notes.find(n => n.id === id);
+            if (note) {
+                note.pinned = !note.pinned;
+                saveNotes();
+                renderNotes();
+                showToast(note.pinned ? '메모가 상단에 고정되었습니다.' : '상단 고정이 해제되었습니다.');
+            }
+        }
+
+        function deleteNote(id) {
+            if (confirm('정말로 이 메모를 삭제하시겠습니까?')) {
+                notes = notes.filter(n => n.id !== id);
+                saveNotes();
+                renderNotes();
+                showToast('메모가 삭제되었습니다.');
+            }
+        }
+
+        // --- Export & Import JSON ---
+        function exportNotesToJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(notes, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `smart_notes_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast('JSON 파일로 내보냈습니다.');
+        }
+
+        function importNotesFromJSON(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const importedNotes = JSON.parse(event.target.result);
+                    if (Array.isArray(importedNotes)) {
+                        notes = importedNotes;
+                        saveNotes();
+                        renderNotes();
+                        showToast('메모를 성공적으로 가져왔습니다.');
+                    } else {
+                        alert('올바른 메모 JSON 형식 파일이 아닙니다.');
+                    }
+                } catch (err) {
+                    alert('파일을 읽는 중 오류가 발생했습니다.');
+                }
+            };
+            reader.readAsText(file);
+            jsonFileInput.value = ''; // Reset
+        }
+
+        // --- Utilities ---
+        function formatDate(isoString) {
+            const date = new Date(isoString);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${year}.${month}.${day} ${hours}:${minutes}`;
+        }
+
+        function escapeHtml(str) {
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function showToast(message) {
+            toastMessage.textContent = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2500);
+        }
+    </script>
+</body>
+</html>
